@@ -37,7 +37,7 @@ public class DayNightSensor implements SensorEventListener {
      */
     public static void start(Application application, int samplingDelay) {
         if (instance != null) {
-            throw new RuntimeException("twig.nguyen.common.DayNightSensor already instantiated.");
+            throw new RuntimeException("DayNightSensor already instantiated.");
         }
 
         instance = new DayNightSensor(application, samplingDelay);
@@ -78,19 +78,12 @@ public class DayNightSensor implements SensorEventListener {
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
 
         if (lightSensor == null) {
-            // Failure! No light sensor
-            Log.e("lightSensor", "No light sensor found");
-
+            // No light sensor
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO);
         }
         else {
-            // Success! There's a magnetometer.
-            Log.e("lightSensor", "Found!");
-
             lifecycleCallback = getLifecycleCallback();
             application.registerActivityLifecycleCallbacks(lifecycleCallback);
-
-//            beginMonitoringLightLevels();
         }
     }
 
@@ -114,44 +107,30 @@ public class DayNightSensor implements SensorEventListener {
 
     protected Application.ActivityLifecycleCallbacks getLifecycleCallback() {
         return new Application.ActivityLifecycleCallbacks() {
-            @Override
-            public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-                Log.e("onActivityCreated", activity.toString());
-            }
-
-            @Override
-            public void onActivityStarted(Activity activity) {
-                Log.e("onActivityStarted", activity.toString());
-            }
+            @Override public void onActivityCreated(Activity activity, Bundle savedInstanceState) { }
+            @Override public void onActivityStarted(Activity activity) { }
+            @Override public void onActivitySaveInstanceState(Activity activity, Bundle outState) { }
 
             @Override
             public void onActivityResumed(Activity activity) {
-                Log.e("onActivityResumed", activity.toString());
                 currentActivity = activity;
                 beginMonitoringLightLevels();
             }
 
             @Override
             public void onActivityPaused(Activity activity) {
-                Log.e("onActivityPaused", activity.toString());
                 currentActivity = null;
                 stopMonitoringLightLevels();
             }
 
             @Override
             public void onActivityStopped(Activity activity) {
-                Log.e("onActivityStopped", activity.toString());
                 currentActivity = null;
                 stopMonitoringLightLevels();
             }
 
             @Override
-            public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
-            }
-
-            @Override
             public void onActivityDestroyed(Activity activity) {
-                Log.e("onActivityDestroyed", activity.toString());
                 currentActivity = null;
                 stopMonitoringLightLevels();
             }
@@ -160,45 +139,51 @@ public class DayNightSensor implements SensorEventListener {
 
 
     /**
-     * Check light levels every 1 second.
+     * Check light levels every X milliseconds.
      */
     protected void beginMonitoringLightLevels() {
-        // Throttle the incoming events so it's read once every 2-3 seconds.
-        // Sensor sampling period is in microseconds. We want milliseconds so x1000
+        // Sensor sampling period is in MICROseconds.
+        // Most people are used to MILLIseconds so x1000
         sensorManager.registerListener(this, lightSensor, samplingDelay * 1000);
     }
 
+    /**
+     * Stop checking light levels (Activity ended, suspended, etc)
+     */
     protected void stopMonitoringLightLevels() {
         sensorManager.unregisterListener(this, lightSensor);
     }
 
 
+    /**
+     * @see http://developer.android.com/reference/android/hardware/SensorEvent.html#values
+     * (section regarding Sensor.TYPE_LIGHT)
+     *
+     * @see https://en.wikipedia.org/wiki/Lux
+     */
     @Override
     public void onSensorChanged(SensorEvent event) {
-        // @see (section regarding Sensor.TYPE_LIGHT)
-        // http://developer.android.com/reference/android/hardware/SensorEvent.html#values
-        // https://en.wikipedia.org/wiki/Lux
-
         int changeToMode = currentNightMode;
         float lux = event.values[0];
-//        Log.w("onSensorChanged", String.valueOf(lux));
 
         // Less than LUX_THRESHOLD is considered dark
         if (lux < LUX_THRESHOLD) {
-            Log.w("onSensorChanged DARK", String.valueOf(lux));
+//            Log.w("onSensorChanged DARK", String.valueOf(lux));
             changeToMode = AppCompatDelegate.MODE_NIGHT_YES;
         }
         else {
-            Log.w("onSensorChanged BRIGHT", String.valueOf(lux));
+//            Log.w("onSensorChanged BRIGHT", String.valueOf(lux));
             changeToMode = AppCompatDelegate.MODE_NIGHT_NO;
         }
 
-        // Prevent this from changing too often
-        if (currentActivity != null && currentNightMode != changeToMode) {
+        // Only update and recreate the Activity if needed!
+        if (currentNightMode != changeToMode) {
             AppCompatDelegate.setDefaultNightMode(changeToMode);
-            currentActivity.recreate();
-
             currentNightMode = changeToMode;
+
+            if (currentActivity != null) {
+                currentActivity.recreate();
+            }
         }
     }
 
