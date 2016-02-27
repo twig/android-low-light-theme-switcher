@@ -10,21 +10,21 @@ Requires API 14+.
 
 # Usage
 
-  public class YourApplication extends Application {
-  	@Override
-  	public void onCreate() {
-  		super.onCreate();
+    public class YourApplication extends Application {
+	    @Override
+	    public void onCreate() {
+  	    super.onCreate();
   
-      // Change between day/night/auto
-      DayNightSensor.start(this);
-    }
+        // Change between day/night/auto
+        DayNightSensor.start(this);
+      }
   
-    @Override
-    public void onTerminate() {
+      @Override
+      public void onTerminate() {
         DayNightSensor.stop(this);
         super.onTerminate();
+      }
     }
-  }
 
 
 # Options
