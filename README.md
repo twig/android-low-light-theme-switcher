@@ -24,7 +24,7 @@ Add the jitpack repo to your project build.gradle
 Add the library to your module build.gradle
 
 	dependencies {
-	        compile 'com.github.twig:android-low-light-theme-switcher:1.0.0'
+	        compile 'com.github.twig:android-low-light-theme-switcher:1.0.1'
 	}
 
 # Usage
