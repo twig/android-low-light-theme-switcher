@@ -28,6 +28,7 @@ Requires API 14+.
       }
     }
 
+Note: Looking for some help on figuring out how to distribute this via Maven.
 
 # Options
 
