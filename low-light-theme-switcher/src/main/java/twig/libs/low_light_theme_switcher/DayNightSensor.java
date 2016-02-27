@@ -113,26 +113,40 @@ public class DayNightSensor implements SensorEventListener {
 
             @Override
             public void onActivityResumed(Activity activity) {
+//                Log.e("onActivityResumed", activity.toString());
+
                 currentActivity = activity;
                 beginMonitoringLightLevels();
             }
 
             @Override
             public void onActivityPaused(Activity activity) {
-                currentActivity = null;
-                stopMonitoringLightLevels();
+//                Log.e("onActivityPaused", activity.toString());
+
+                if (activity == currentActivity) {
+                    currentActivity = null;
+                    stopMonitoringLightLevels();
+                }
             }
 
             @Override
             public void onActivityStopped(Activity activity) {
-                currentActivity = null;
-                stopMonitoringLightLevels();
+//                Log.e("onActivityStopped", activity.toString());
+
+                if (activity == currentActivity) {
+                    currentActivity = null;
+                    stopMonitoringLightLevels();
+                }
             }
 
             @Override
             public void onActivityDestroyed(Activity activity) {
-                currentActivity = null;
-                stopMonitoringLightLevels();
+//                Log.e("onActivityDestroyed", activity.toString());
+
+                if (activity == currentActivity) {
+                    currentActivity = null;
+                    stopMonitoringLightLevels();
+                }
             }
         };
     }
