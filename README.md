@@ -10,6 +10,23 @@ Requires API 14+.
 
 [![demo video](http://img.youtube.com/vi/MVIeD-2MtGk/0.jpg)](http://www.youtube.com/watch?v=MVIeD-2MtGk)
 
+# Adding it to your project
+
+Add the jitpack repo to your project build.gradle
+
+	allprojects {
+		repositories {
+			...
+			maven { url "https://jitpack.io" }
+		}
+	}
+
+Add the library to your module build.gradle
+
+	dependencies {
+	        compile 'com.github.twig:android-low-light-theme-switcher:1.0.0'
+	}
+
 # Usage
 
     public class YourApplication extends Application {
@@ -27,8 +44,6 @@ Requires API 14+.
         super.onTerminate();
       }
     }
-
-Note: Looking for some help on figuring out how to distribute this via Maven.
 
 # Options
 
