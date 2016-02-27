@@ -8,6 +8,8 @@ I beleive that this default behaviour is due to a limitation that not all Androi
 
 Requires API 14+.
 
+[![demo video](http://img.youtube.com/vi/MVIeD-2MtGk/0.jpg)](http://www.youtube.com/watch?v=MVIeD-2MtGk)
+
 # Usage
 
     public class YourApplication extends Application {
