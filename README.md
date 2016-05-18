@@ -24,35 +24,41 @@ Add the jitpack repo to your project build.gradle
 Add the library to your module build.gradle
 
 	dependencies {
-	        compile 'com.github.twig:android-low-light-theme-switcher:1.0.1'
+	        compile 'com.github.twig:android-low-light-theme-switcher:1.1.0'
 	}
 
 # Usage
 
     public class YourApplication extends Application {
-	    @Override
-	    public void onCreate() {
-  	    super.onCreate();
+        @Override
+        public void onCreate() {
+            super.onCreate();
   
-        // Change between day/night/auto
-        DayNightSensor.start(this);
-      }
+            // Change between day/night/auto
+            DayNightSensor.start(this);
+        }
   
-      @Override
-      public void onTerminate() {
-        DayNightSensor.stop(this);
-        super.onTerminate();
-      }
+        @Override
+        public void onTerminate() {
+            DayNightSensor.stop(this);
+            super.onTerminate();
+        }
     }
 
 # Options
 
-## DayNightSensor.start(this, [samplingDelay=3000]);
+## DayNightSensor.start(this, [settings]);
 
-By default, it checks the light sensor values every 3 seconds. If needed, you can adjust this to your liking.
+Parameter `settings` is an instance of `DayNightSensor.Settings`.
+
+By default:
+
+- `Settings.luxThreshold` is currently `4.0` lumens. Still trying to figure out a good "dark enough" value.
+- `Settings.samplingDelay` checks the light sensor values every `3,000` milliseconds.
+- `Settings.autoRestartActivity` will automatically recreate the current activity if darkness levels change. Set to `false` if you don't want it to cause jitters.
 
 
 # Technical details
 
-- Calls Activity.recreate() when a change in brightness is detected.
+- If `autoRestartActivity` is `true`, DayNightSensor calls `Activity.recreate()` when a change in brightness is detected.
 - Make sure that your Activity saves and restores instance state data correctly.
