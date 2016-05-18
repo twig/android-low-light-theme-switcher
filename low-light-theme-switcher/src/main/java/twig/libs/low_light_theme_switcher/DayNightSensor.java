@@ -11,43 +11,73 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatDelegate;
 import android.util.Log;
 
+import java.util.concurrent.TimeUnit;
+
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
+
 /**
  * Created by twig on 27/02/2016.
  */
 public class DayNightSensor implements SensorEventListener {
-    // Static fields
-    public static final float LUX_THRESHOLD = 6.0f;
+    // Threshold before lighting is considered "dark"
+    public static final float LUX_THRESHOLD = 4.0f;
+    // Interval between light samples taken in milliseconds
+    public static final int DEFAULT_INTERVAL = 3000;
+    // Default value for auto-recreate of activity
+    public static final boolean DEFAULT_AUTORESTART_ACTIVITY = true;
 
+
+    // Easier for users to customise the library
+    public static class Settings {
+        // Threshold before lighting is considered "dark"
+        public float luxThreshold = LUX_THRESHOLD;
+        // Interval between light samples taken in milliseconds
+        public int samplingDelay = DEFAULT_INTERVAL;
+        // Should the library auto-restart the activity when lighting changes?
+        public boolean autoRestartActivity = DEFAULT_AUTORESTART_ACTIVITY;
+    }
+
+
+    // Single instance
     private static DayNightSensor instance;
 
-    // Class fields
+
+    // Class fields - state
     private Application.ActivityLifecycleCallbacks lifecycleCallback;
     private Activity currentActivity;
     private SensorManager sensorManager;
     private Sensor lightSensor;
     private int currentNightMode;
-    private int samplingDelay;
+    private PublishSubject<Float> throttler;
 
+    // Class fields - configuration
+    private float luxThreshold;
+    private int samplingDelay;
+    private boolean autoRestartActivity;
+
+
+    /**
+     * Begin monitoring with default settings.
+     */
+    public static void start(Application application) {
+        start(application, new Settings());
+    }
 
     /**
      * Begin monitoring the light levels for this application.
      *
      * @param application
-     * @param samplingDelay Delay in sampling in milliseconds.
+     * @param settings Customised settings.
      */
-    public static void start(Application application, int samplingDelay) {
+    public static void start(Application application, Settings settings) {
         if (instance != null) {
             throw new RuntimeException("DayNightSensor already instantiated.");
         }
 
-        instance = new DayNightSensor(application, samplingDelay);
-    }
-
-    /**
-     * Default samplingDelay to 3000ms.
-     */
-    public static void start(Application application) {
-        start(application, 3000);
+        instance = new DayNightSensor(application, settings);
     }
 
 
@@ -67,12 +97,15 @@ public class DayNightSensor implements SensorEventListener {
     // ----- Nothing below here uses 'instance' -----
 
     // Private constructor
-    private DayNightSensor(Application application, int samplingDelay) {
+    private DayNightSensor(Application application, Settings settings) {
         this.lifecycleCallback = null;
         this.currentActivity = null;
         this.lightSensor = null;
         this.currentNightMode = AppCompatDelegate.MODE_NIGHT_AUTO;
-        this.samplingDelay = samplingDelay;
+
+        this.luxThreshold = settings.luxThreshold;
+        this.samplingDelay = settings.samplingDelay;
+        this.autoRestartActivity = settings.autoRestartActivity;
 
         sensorManager = (SensorManager) application.getSystemService(Context.SENSOR_SERVICE);
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
@@ -159,6 +192,20 @@ public class DayNightSensor implements SensorEventListener {
         // Sensor sampling period is in MICROseconds.
         // Most people are used to MILLIseconds so x1000
         sensorManager.registerListener(this, lightSensor, samplingDelay * 1000);
+
+        // Stops working after activity restarted
+        throttler = PublishSubject.create();
+        throttler
+            .throttleFirst(samplingDelay, TimeUnit.MILLISECONDS, Schedulers.newThread())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Action1<Float>() {
+                @Override
+                public void call(Float lux) {
+//                    Log.e("throttled", String.valueOf(lux));
+                    doSensorChange(lux);
+                }
+            })
+        ;
     }
 
     /**
@@ -166,6 +213,7 @@ public class DayNightSensor implements SensorEventListener {
      */
     protected void stopMonitoringLightLevels() {
         sensorManager.unregisterListener(this, lightSensor);
+//        throttler.onCompleted();
     }
 
 
@@ -177,11 +225,17 @@ public class DayNightSensor implements SensorEventListener {
      */
     @Override
     public void onSensorChanged(SensorEvent event) {
-        int changeToMode = currentNightMode;
         float lux = event.values[0];
+//        Log.e("onSensorChanged", String.valueOf(lux));
+
+        throttler.onNext(lux);
+    }
+
+    protected void doSensorChange(float lux) {
+        int changeToMode = currentNightMode;
 
         // Less than LUX_THRESHOLD is considered dark
-        if (lux < LUX_THRESHOLD) {
+        if (lux < luxThreshold) {
 //            Log.w("onSensorChanged DARK", String.valueOf(lux));
             changeToMode = AppCompatDelegate.MODE_NIGHT_YES;
         }
@@ -195,7 +249,7 @@ public class DayNightSensor implements SensorEventListener {
             AppCompatDelegate.setDefaultNightMode(changeToMode);
             currentNightMode = changeToMode;
 
-            if (currentActivity != null) {
+            if (currentActivity != null && autoRestartActivity) {
                 currentActivity.recreate();
             }
         }
